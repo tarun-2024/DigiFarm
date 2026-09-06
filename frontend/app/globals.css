@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+:root {
+  --forest: #1a4d3e;
+  --agri-green: #2d7d46;
+  --soft-green: #e8f5e9;
+  --cream: #fdf8f0;
+  --charcoal: #2d2d2d;
+}
+
+body {
+  background-color: white;
+  color: var(--charcoal);
+}
+
+/* Primary Button */
+.btn-primary {
+  background-color: var(--forest);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background-color: var(--agri-green);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.btn-secondary:hover {
+  opacity: 0.9;
+}
+
+/* Outline Button */
+.btn-outline {
+  border: 2px solid var(--forest);
+  color: var(--forest);
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.btn-outline:hover {
+  background-color: var(--forest);
+  color: white;
+}
+
+/* General Card */
+.card {
+  background-color: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 0.1);
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 10px 15px rgb(0 0 0 / 0.1);
+}
+
+/* Statistics Card */
+.stat-card {
+  background-color: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid #f3f4f6;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  transition: box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  box-shadow: 0 4px 6px rgb(0 0 0 / 0.1);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #f3f4f6;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--agri-green);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--forest);
+}
