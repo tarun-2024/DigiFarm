@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-
+import { getFarmer } from '@/lib/api/farmer'
+import { getBuyer } from '@/lib/api/buyer'
 import {
   LayoutDashboard,
   TrendingUp,
@@ -365,9 +366,73 @@ export default function Sidebar({
   // LOAD USER AFTER COMPONENT MOUNTS
   // =====================================================
 
-  useEffect(() => {
+ useEffect(() => {
+
+  const loadLatestUser = async () => {
 
     try {
+
+      // ==========================================
+      // FARMER
+      // ==========================================
+
+      if (role === 'farmer' && farmerId) {
+
+        const response = await getFarmer(farmerId)
+
+        if (response?.farmer) {
+
+          const latestFarmer = response.farmer
+
+          setUser(latestFarmer)
+
+          localStorage.setItem(
+            'digifarm_user',
+            JSON.stringify(latestFarmer)
+          )
+
+          localStorage.setItem(
+            'digifarm_farmer',
+            JSON.stringify(latestFarmer)
+          )
+
+          return
+        }
+      }
+
+
+      // ==========================================
+      // BUYER
+      // ==========================================
+
+      if (role === 'buyer' && buyerId) {
+
+        const response = await getBuyer(buyerId)
+
+        if (response?.buyer) {
+
+          const latestBuyer = response.buyer
+
+          setUser(latestBuyer)
+
+          localStorage.setItem(
+            'digifarm_user',
+            JSON.stringify(latestBuyer)
+          )
+
+          localStorage.setItem(
+            'digifarm_buyer',
+            JSON.stringify(latestBuyer)
+          )
+
+          return
+        }
+      }
+
+
+      // ==========================================
+      // FPO / ADMIN / FALLBACK
+      // ==========================================
 
       const storedUser =
         localStorage.getItem('digifarm_user')
@@ -378,19 +443,40 @@ export default function Sidebar({
           JSON.parse(storedUser)
 
         setUser(parsedUser)
-
       }
 
     } catch (error) {
 
       console.error(
-        'Error loading logged-in user:',
+        'Error loading latest user:',
         error
       )
 
+      // Fallback to localStorage
+      try {
+
+        const storedUser =
+          localStorage.getItem('digifarm_user')
+
+        if (storedUser) {
+          setUser(JSON.parse(storedUser))
+        }
+
+      } catch (storageError) {
+
+        console.error(
+          'Error reading stored user:',
+          storageError
+        )
+
+      }
     }
 
-  }, [])
+  }
+
+  loadLatestUser()
+
+}, [role, farmerId, buyerId, pathname])
 
 
   // =====================================================

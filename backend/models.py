@@ -1,4 +1,3 @@
-from matcher import SmartFarmerBuyerMatcher
 import pandas as pd
 from datetime import datetime
 

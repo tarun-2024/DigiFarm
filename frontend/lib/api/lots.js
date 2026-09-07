@@ -4,19 +4,22 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   'http://127.0.0.1:5000/api'
 
+
 // =====================================================
 // HANDLE API RESPONSE
 // =====================================================
 
 const handleResponse = async (response) => {
-  const data = await response
-    .json()
-    .catch(() => null)
+
+  const data =
+    await response.json().catch(() => null)
 
   if (!response.ok) {
+
     throw new Error(
       data?.error ||
       data?.message ||
+      data?.msg ||
       `API request failed with status ${response.status}`
     )
   }
@@ -24,46 +27,48 @@ const handleResponse = async (response) => {
   return data
 }
 
+
 // =====================================================
 // GET ALL LOTS FOR FARMER
 // =====================================================
 
 export const getFarmerLots = async (farmerId) => {
+
   if (!farmerId) {
     throw new Error('Farmer ID is required')
   }
 
-  const url = `${API_URL}/farmers/${farmerId}/lots`
-
-  console.log('GET LOTS URL:', url)
+  const url =
+    `${API_URL}/farmers/${farmerId}/lots`
 
   try {
+
     const response = await fetch(url, {
       method: 'GET',
+
       headers: {
         Accept: 'application/json',
       },
-    })
 
-    console.log(
-      'GET LOTS STATUS:',
-      response.status
-    )
+      cache: 'no-store',
+    })
 
     return await handleResponse(response)
 
   } catch (error) {
+
     console.error(
-      'GET LOTS ERROR:',
+      'GET FARMER LOTS ERROR:',
       error
     )
 
     throw new Error(
       error?.message ||
-      'Unable to connect to the server'
+      'Unable to fetch farmer lots'
     )
   }
 }
+
 
 // =====================================================
 // GET SINGLE LOT
@@ -73,6 +78,7 @@ export const getLot = async (
   farmerId,
   lotId
 ) => {
+
   if (!farmerId) {
     throw new Error('Farmer ID is required')
   }
@@ -84,24 +90,22 @@ export const getLot = async (
   const url =
     `${API_URL}/farmers/${farmerId}/lots/${lotId}`
 
-  console.log('GET LOT URL:', url)
-
   try {
+
     const response = await fetch(url, {
       method: 'GET',
+
       headers: {
         Accept: 'application/json',
       },
-    })
 
-    console.log(
-      'GET LOT STATUS:',
-      response.status
-    )
+      cache: 'no-store',
+    })
 
     return await handleResponse(response)
 
   } catch (error) {
+
     console.error(
       'GET LOT ERROR:',
       error
@@ -114,6 +118,7 @@ export const getLot = async (
   }
 }
 
+
 // =====================================================
 // CREATE LOT
 // =====================================================
@@ -122,24 +127,20 @@ export const createLot = async (
   farmerId,
   lotData
 ) => {
+
   if (!farmerId) {
     throw new Error('Farmer ID is required')
+  }
+
+  if (!lotData) {
+    throw new Error('Lot data is required')
   }
 
   const url =
     `${API_URL}/farmers/${farmerId}/lots`
 
-  console.log(
-    'CREATE LOT URL:',
-    url
-  )
-
-  console.log(
-    'CREATE LOT DATA:',
-    lotData
-  )
-
   try {
+
     const response = await fetch(url, {
       method: 'POST',
 
@@ -151,14 +152,10 @@ export const createLot = async (
       body: JSON.stringify(lotData),
     })
 
-    console.log(
-      'CREATE LOT STATUS:',
-      response.status
-    )
-
     return await handleResponse(response)
 
   } catch (error) {
+
     console.error(
       'CREATE LOT ERROR:',
       error
@@ -171,6 +168,7 @@ export const createLot = async (
   }
 }
 
+
 // =====================================================
 // UPDATE LOT
 // =====================================================
@@ -180,6 +178,7 @@ export const updateLot = async (
   lotId,
   lotData
 ) => {
+
   if (!farmerId) {
     throw new Error('Farmer ID is required')
   }
@@ -188,15 +187,15 @@ export const updateLot = async (
     throw new Error('Lot ID is required')
   }
 
+  if (!lotData) {
+    throw new Error('Lot data is required')
+  }
+
   const url =
     `${API_URL}/farmers/${farmerId}/lots/${lotId}`
 
-  console.log(
-    'UPDATE LOT URL:',
-    url
-  )
-
   try {
+
     const response = await fetch(url, {
       method: 'PUT',
 
@@ -208,14 +207,10 @@ export const updateLot = async (
       body: JSON.stringify(lotData),
     })
 
-    console.log(
-      'UPDATE LOT STATUS:',
-      response.status
-    )
-
     return await handleResponse(response)
 
   } catch (error) {
+
     console.error(
       'UPDATE LOT ERROR:',
       error
@@ -228,6 +223,7 @@ export const updateLot = async (
   }
 }
 
+
 // =====================================================
 // DELETE LOT
 // =====================================================
@@ -236,6 +232,7 @@ export const deleteLot = async (
   farmerId,
   lotId
 ) => {
+
   if (!farmerId) {
     throw new Error('Farmer ID is required')
   }
@@ -247,12 +244,8 @@ export const deleteLot = async (
   const url =
     `${API_URL}/farmers/${farmerId}/lots/${lotId}`
 
-  console.log(
-    'DELETE LOT URL:',
-    url
-  )
-
   try {
+
     const response = await fetch(url, {
       method: 'DELETE',
 
@@ -261,14 +254,10 @@ export const deleteLot = async (
       },
     })
 
-    console.log(
-      'DELETE LOT STATUS:',
-      response.status
-    )
-
     return await handleResponse(response)
 
   } catch (error) {
+
     console.error(
       'DELETE LOT ERROR:',
       error

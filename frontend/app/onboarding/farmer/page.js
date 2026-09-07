@@ -412,7 +412,6 @@ export default function FarmerOnboarding() {
     }
 
     if (validateStep(currentStep)) {
-
       // Step 4 = complete onboarding
       if (currentStep === 4) {
         handleComplete()
@@ -479,124 +478,167 @@ export default function FarmerOnboarding() {
   // =====================================================
 
   const handleComplete = async () => {
-    // Prevent duplicate clicks
-    if (isLoading) {
-      return
-    }
+  // Prevent duplicate clicks
+  if (isLoading) {
+    return
+  }
 
-    try {
-      // Start loading
-      setIsLoading(true)
+  try {
+    // Start loading
+    setIsLoading(true)
 
-      // Remove previous submit error
-      setErrors(prev => ({
-        ...prev,
-        submit: undefined,
-      }))
+    // Remove previous submit error
+    setErrors(prev => ({
+      ...prev,
+      submit: undefined,
+    }))
 
-      // ================================================
-      // SEND FARMER INFORMATION TO FLASK
-      // ================================================
+    // ================================================
+    // SEND FARMER INFORMATION TO FLASK
+    // ================================================
 
-      const data = await createFarmer(farmer)
+    const data = await createFarmer(farmer)
 
+    console.log("Farmer created:", data)
+
+    // ================================================
+    // HANDLE DUPLICATE MOBILE NUMBER
+    // ================================================
+
+    if (data?.duplicate) {
       console.log(
-        'Farmer created:',
-        data
-      )
-
-      // ================================================
-      // CHECK FARMER ID
-      // ================================================
-
-      if (
-        !data ||
-        !data.farmer_id
-      ) {
-        throw new Error(
-          'Farmer ID was not returned by the server.'
-        )
-      }
-
-      // ================================================
-      // SAVE FARMER ID
-      // ================================================
-
-      const farmerId = data.farmer_id
-
-      setCreatedFarmerId(farmerId)
-
-      console.log(
-        'Created Farmer ID:',
-        farmerId
-      )
-
-      // ================================================
-      // CREATE COMPLETE FARMER OBJECT
-      // ================================================
-
-      const savedFarmer = {
-        ...farmer,
-        id: farmerId,
-      }
-
-      // ================================================
-      // SAVE TO LOCAL STORAGE
-      // ================================================
-
-      localStorage.setItem(
-        'digifarm_farmer',
-        JSON.stringify(savedFarmer)
-      )
-
-      localStorage.setItem(
-        'digifarm_farmer_profile',
-        JSON.stringify(savedFarmer)
-      )
-
-      // ================================================
-      // SAVE LOGGED-IN USER
-      // ================================================
-
-      localStorage.setItem(
-        'digifarm_user',
-        JSON.stringify({
-          ...savedFarmer,
-          role: 'farmer',
-          loggedInAt:
-            new Date().toISOString(),
-        })
-      )
-
-      // ================================================
-      // UPDATE FARMER STATE
-      // ================================================
-
-      setFarmer(savedFarmer)
-
-      // ================================================
-      // SHOW SUCCESS SCREEN
-      // ================================================
-
-      setIsComplete(true)
-
-    } catch (error) {
-      console.error(
-        'ONBOARDING ERROR:',
-        error
+        "Mobile number already exists:",
+        data?.message
       )
 
       setErrors(prev => ({
         ...prev,
         submit:
-          error?.message ||
-          'Unable to complete onboarding. Please try again.',
+          data?.message ||
+          "This mobile number is already registered.",
       }))
-    } finally {
-      // Stop loading
-      setIsLoading(false)
+
+      // IMPORTANT:
+      // Do NOT open dashboard
+      // Do NOT show success screen
+      return
     }
+
+    // ================================================
+    // GET FARMER ID
+    // ================================================
+
+    /*
+     * Support all common backend response formats:
+     *
+     * { farmer_id: 5 }
+     *
+     * { farmer: { id: 5 } }
+     *
+     * { id: 5 }
+     */
+
+    const farmerId =
+      data?.farmer_id ??
+      data?.farmer?.id ??
+      data?.id
+
+    console.log(
+      "FARMER ID FROM SERVER:",
+      farmerId
+    )
+
+    // ================================================
+    // FARMER ID NOT FOUND
+    // ================================================
+
+    if (!farmerId) {
+      console.error(
+        "FULL FARMER SERVER RESPONSE:",
+        data
+      )
+
+      throw new Error(
+        "Farmer ID was not returned by the server."
+      )
+    }
+
+    // ================================================
+    // SAVE FARMER ID
+    // ================================================
+
+    setCreatedFarmerId(farmerId)
+
+    console.log(
+      "Created Farmer ID:",
+      farmerId
+    )
+
+    // ================================================
+    // CREATE COMPLETE FARMER OBJECT
+    // ================================================
+
+    const savedFarmer = {
+      ...farmer,
+      id: farmerId,
+    }
+
+    // ================================================
+    // SAVE TO LOCAL STORAGE
+    // ================================================
+
+    localStorage.setItem(
+      "digifarm_farmer",
+      JSON.stringify(savedFarmer)
+    )
+
+    localStorage.setItem(
+      "digifarm_farmer_profile",
+      JSON.stringify(savedFarmer)
+    )
+
+    // ================================================
+    // SAVE LOGGED-IN USER
+    // ================================================
+
+    localStorage.setItem(
+      "digifarm_user",
+      JSON.stringify({
+        ...savedFarmer,
+        role: "farmer",
+        loggedInAt: new Date().toISOString(),
+      })
+    )
+
+    // ================================================
+    // UPDATE FARMER STATE
+    // ================================================
+
+    setFarmer(savedFarmer)
+
+    // ================================================
+    // SHOW SUCCESS SCREEN
+    // ================================================
+
+    setIsComplete(true)
+
+  } catch (error) {
+    console.error(
+      "ONBOARDING ERROR:",
+      error
+    )
+
+    setErrors(prev => ({
+      ...prev,
+      submit:
+        error?.message ||
+        "Unable to complete onboarding. Please try again.",
+    }))
+  } finally {
+    // Stop loading
+    setIsLoading(false)
   }
+}
 
   // =====================================================
   // GO TO FARMER DASHBOARD
@@ -618,12 +660,14 @@ export default function FarmerOnboarding() {
     }
 
     console.log(
-      'Redirecting to dashboard:',
+      'Opening dashboard:',
       `/farmer/${createdFarmerId}/dashboard`
     )
 
-    router.push(
-      `/farmer/${createdFarmerId}/dashboard`
+    // Open dashboard in a new tab
+    window.open(
+      `/farmer/${createdFarmerId}/dashboard`,
+      '_blank'
     )
   }
 

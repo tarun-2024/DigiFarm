@@ -45,7 +45,7 @@ export default function DigiFarmLogo({ className = '', size = 'md' }) {
       <div>
 
         <span className={`font-bold ${sizes[size]} text-[#1a4d3e]`}>
-          Digi<span className="text-[#2d7d46]">Farm</span>
+          Digi<span className="text-[#2d7d46]">FARM</span>
         </span>
 
         <p className="text-xs text-gray-500 -mt-1">

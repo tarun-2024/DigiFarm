@@ -1,6 +1,0 @@
-lot_id,farmer_name,location,lat,lon,crop,quantity_tonnes,grade,expected_price
-WB-POT-001,Ramesh Roy,"Hooghly, WB",22.8963,88.2461,Potato,12.5,B,1500.0
-WB-RIC-002,Sanjay Das,"Burdwan, WB",23.2324,87.8615,Rice,20.0,A,2800.0
-WB-TOM-003,Amit Ghosh,"Nadia, WB",23.471,88.5565,Tomato,8.0,B,2200.0
-WB-ONI-004,Bikash Mondal,"Murshidabad, WB",24.0988,88.2711,Onion,15.0,A,2400.0
-WB-CAR-005,Subhankar Roy,"Howrah, WB",22.5958,88.2636,Carrot,6.5,B,3000.0

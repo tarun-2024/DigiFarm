@@ -17,278 +17,453 @@ routes = Blueprint("routes", __name__)
 # =========================================================
 
 @farmer_bp.route("/farmers", methods=["POST"])
-def create_farmer():
-
-    data = request.get_json()
+def register_farmer():
 
     try:
-
-        # -------------------------------------------------
-        # Validate request
-        # -------------------------------------------------
+        data = request.get_json()
 
         if not data:
             return jsonify({
                 "success": False,
-                "error": "No data received"
+                "message": "No data received"
             }), 400
 
+        # =========================================================
+        # BASIC FARMER INFORMATION
+        # =========================================================
 
-        # -------------------------------------------------
-        # Get and validate mobile number
-        # -------------------------------------------------
+        name = data.get("name")
+        mobile = data.get("mobile")
+        password = data.get("password")
 
-        mobile = str(
-            data.get("mobile", "")
-        ).strip()
+        state = data.get("state")
+        district = data.get("district")
+        village = data.get("village")
+        language = data.get("language")
 
+        # =========================================================
+        # FARM DETAILS
+        # =========================================================
+
+        farm_size = data.get("farmSize")
+        irrigation = data.get("irrigation")
+
+        fpo_member = data.get("fpoMember", False)
+        fpo_name = data.get("fpoName")
+
+        # =========================================================
+        # SELLING PREFERENCES
+        # =========================================================
+
+        payment_need = data.get("paymentNeed")
+
+        storage_available = data.get(
+            "storageAvailable",
+            False
+        )
+
+        storage_duration = data.get(
+            "storageDuration"
+        )
+
+        minimum_price = data.get(
+            "minimumPrice"
+        )
+
+        # =========================================================
+        # CROPS
+        # =========================================================
+
+        crops = data.get("crops", [])
+
+        # =========================================================
+        # VALIDATION
+        # =========================================================
+
+        if not name:
+            return jsonify({
+                "success": False,
+                "message": "Farmer name is required"
+            }), 400
 
         if not mobile:
             return jsonify({
                 "success": False,
-                "error": "Mobile number is required"
+                "message": "Mobile number is required"
             }), 400
-
-
-        if not mobile.isdigit() or len(mobile) != 10:
-            return jsonify({
-                "success": False,
-                "error": "Please enter a valid 10-digit mobile number"
-            }), 400
-
-
-        # -------------------------------------------------
-        # Get and validate password
-        # -------------------------------------------------
-
-        password = str(
-            data.get("password", "")
-        ).strip()
-
 
         if not password:
             return jsonify({
                 "success": False,
-                "error": "Password is required"
+                "message": "Password is required"
             }), 400
 
-
-        if len(password) < 6:
+        if farm_size is None:
             return jsonify({
                 "success": False,
-                "error": "Password must be at least 6 characters long"
+                "message": "Farm size is required"
             }), 400
 
+        if not irrigation:
+            return jsonify({
+                "success": False,
+                "message": "Irrigation information is required"
+            }), 400
 
-        # -------------------------------------------------
-        # Check if farmer already exists
-        # -------------------------------------------------
+        if not payment_need:
+            return jsonify({
+                "success": False,
+                "message": "Payment preference is required"
+            }), 400
+
+        if minimum_price is None:
+            return jsonify({
+                "success": False,
+                "message": "Minimum price is required"
+            }), 400
+
+        if not crops:
+            return jsonify({
+                "success": False,
+                "message": "At least one crop is required"
+            }), 400
+
+        # =========================================================
+        # CHECK EXISTING FARMER
+        # =========================================================
 
         existing_farmer = Farmer.query.filter_by(
             mobile=mobile
         ).first()
 
-
         if existing_farmer:
 
             return jsonify({
                 "success": False,
-                "error": "A farmer with this mobile number already exists.",
-                "farmer_id": existing_farmer.id
+                "message": "Farmer with this mobile number already exists"
             }), 409
 
+        # =========================================================
+        # CONVERT FARMER VALUES
+        # =========================================================
 
-        # -------------------------------------------------
-        # Convert Yes / No to Boolean
-        # -------------------------------------------------
+        try:
+            farm_size = float(farm_size)
+            minimum_price = float(minimum_price)
 
-        fpo_member = (
-            str(
-                data.get("fpoMember", "")
+        except (TypeError, ValueError):
+
+            return jsonify({
+                "success": False,
+                "message": "Farm size and minimum price must be numbers"
+            }), 400
+
+        # =========================================================
+        # CONVERT STORAGE VALUE
+        # =========================================================
+
+        # Frontend may send:
+        # "Yes" / "No"
+        #
+        # Database expects Boolean
+
+        if isinstance(storage_available, str):
+
+            storage_available = (
+                storage_available.lower() == "yes"
             )
-            .strip()
-            .lower()
-            == "yes"
-        )
 
+        else:
 
-        storage_available = (
-            str(
-                data.get("storageAvailable", "")
+            storage_available = bool(
+                storage_available
             )
-            .strip()
-            .lower()
-            == "yes"
-        )
 
+        # =========================================================
+        # CONVERT FPO VALUE
+        # =========================================================
 
-        # -------------------------------------------------
-        # Hash password
-        # -------------------------------------------------
+        if isinstance(fpo_member, str):
 
-        password_hash = generate_password_hash(
-            password
-        )
+            fpo_member = (
+                fpo_member.lower() == "yes"
+                or fpo_member.lower() == "true"
+            )
 
+        else:
 
-        # -------------------------------------------------
-        # Create Farmer
-        # -------------------------------------------------
+            fpo_member = bool(fpo_member)
+
+        # =========================================================
+        # CREATE FARMER
+        # =========================================================
 
         farmer = Farmer(
 
-            name=data["name"],
+            name=name,
 
             mobile=mobile,
 
-            password_hash=password_hash,
-
-            state=data["state"],
-
-            district=data["district"],
-
-            village=data["village"],
-
-            language=data["language"],
-
-            farm_size=float(
-                data["farmSize"]
+            password_hash=generate_password_hash(
+                password
             ),
 
-            irrigation=data["irrigation"],
+            state=state,
+
+            district=district,
+
+            village=village,
+
+            language=language,
+
+            farm_size=farm_size,
+
+            irrigation=irrigation,
 
             fpo_member=fpo_member,
 
-            fpo_name=data.get("fpoName"),
+            fpo_name=fpo_name,
 
-            payment_need=data["paymentNeed"],
+            payment_need=payment_need,
 
             storage_available=storage_available,
 
-            storage_duration=data.get(
-                "storageDuration"
-            ),
+            storage_duration=storage_duration,
 
-            minimum_price=float(
-                data["minimumPrice"]
-            )
+            minimum_price=minimum_price
         )
-
-
-        # -------------------------------------------------
-        # Add Farmer to database
-        # -------------------------------------------------
 
         db.session.add(farmer)
 
-        # Generate farmer ID
+        # =========================================================
+        # GET FARMER ID
+        # =========================================================
+
         db.session.flush()
 
+        # =========================================================
+        # CREATE CROPS + LOTS
+        # =========================================================
 
-        # -------------------------------------------------
-        # Add Crops
-        # -------------------------------------------------
+        created_lots = []
 
-        for crop_data in data.get("crops", []):
+        for index, crop_data in enumerate(crops):
+
+            # -----------------------------------------------------
+            # GET CROP DATA
+            # -----------------------------------------------------
+
+            crop_name = crop_data.get("crop")
+
+            variety = crop_data.get(
+                "variety"
+            )
+
+            quantity = crop_data.get(
+                "quantity"
+            )
+
+            harvest_date = crop_data.get(
+                "harvestDate"
+            )
+
+            expected_selling_date = crop_data.get(
+                "expectedSellingDate"
+            )
+
+            # -----------------------------------------------------
+            # VALIDATE CROP
+            # -----------------------------------------------------
+
+            if not crop_name:
+
+                raise ValueError(
+                    f"Crop is missing for crop #{index + 1}"
+                )
+
+            if quantity is None or quantity == "":
+
+                raise ValueError(
+                    f"Quantity is missing for crop #{index + 1}"
+                )
+
+            try:
+
+                quantity = float(quantity)
+
+            except (TypeError, ValueError):
+
+                raise ValueError(
+                    f"Invalid quantity for crop #{index + 1}"
+                )
+
+            if quantity <= 0:
+
+                raise ValueError(
+                    f"Quantity must be greater than 0 "
+                    f"for crop #{index + 1}"
+                )
+
+            # -----------------------------------------------------
+            # CONVERT HARVEST DATE
+            # -----------------------------------------------------
+
+            harvest = None
+
+            if harvest_date:
+
+                try:
+
+                    harvest = datetime.strptime(
+                        harvest_date,
+                        "%Y-%m-%d"
+                    ).date()
+
+                except ValueError:
+
+                    raise ValueError(
+                        f"Invalid harvest date for "
+                        f"crop #{index + 1}"
+                    )
+
+            # -----------------------------------------------------
+            # CONVERT EXPECTED SELLING DATE
+            # -----------------------------------------------------
+
+            selling = None
+
+            if expected_selling_date:
+
+                try:
+
+                    selling = datetime.strptime(
+                        expected_selling_date,
+                        "%Y-%m-%d"
+                    ).date()
+
+                except ValueError:
+
+                    raise ValueError(
+                        f"Invalid expected selling date "
+                        f"for crop #{index + 1}"
+                    )
+
+            # =====================================================
+            # SAVE TO crops TABLE
+            # =====================================================
 
             crop = Crop(
 
                 farmer_id=farmer.id,
 
-                crop=crop_data["crop"],
+                crop=crop_name,
 
-                variety=crop_data.get(
-                    "variety"
-                ),
+                variety=variety,
 
-                quantity=float(
-                    crop_data["quantity"]
-                ),
+                quantity=quantity,
 
-                harvest_date=datetime.strptime(
-                    crop_data["harvestDate"],
-                    "%Y-%m-%d"
-                ).date(),
+                harvest_date=harvest,
 
-                expected_selling_date=datetime.strptime(
-                    crop_data["expectedSellingDate"],
-                    "%Y-%m-%d"
-                ).date()
+                expected_selling_date=selling
             )
 
             db.session.add(crop)
 
+            # =====================================================
+            # SAVE TO lots TABLE
+            # =====================================================
 
-        # -------------------------------------------------
-        # Commit transaction
-        # -------------------------------------------------
+            lot = Lot(
+
+                # Farmer
+                farmer_id=farmer.id,
+
+                # Crop information
+                crop=crop_name,
+
+                variety=variety,
+
+                quantity=quantity,
+
+                # ProduceStep quantity is in quintals
+                unit="quintal",
+
+                # ProduceStep does not collect grade
+                quality_grade="Not Graded",
+
+                # Price
+                expected_price=minimum_price,
+
+                minimum_price=minimum_price,
+
+                # Dates
+                available_from=harvest,
+
+                expected_sale_date=selling,
+
+                # Location
+                pickup_location=village,
+
+                state=state,
+
+                district=district,
+
+                village=village,
+
+                # Other information
+                description="Lot created during farmer registration",
+
+                packaging_type=None,
+
+                # Status
+                status="Available"
+            )
+
+            db.session.add(lot)
+
+            # Keep track of created lots
+            created_lots.append(lot)
+
+        # =========================================================
+        # COMMIT
+        # =========================================================
 
         db.session.commit()
 
-
-        # -------------------------------------------------
-        # Success response
-        # -------------------------------------------------
+        # =========================================================
+        # RESPONSE
+        # =========================================================
 
         return jsonify({
 
             "success": True,
 
-            "message":
-                "Farmer onboarding completed successfully",
+            "message": "Farmer registered successfully",
+            "farmer_id": farmer.id,
 
-            "farmer_id":
-                farmer.id
+            "farmer": {
+
+                "id": farmer.id,
+
+                "name": farmer.name,
+
+                "mobile": farmer.mobile
+            },
+
+            "lots_created": len(created_lots)
 
         }), 201
 
+    # =============================================================
+    # INVALID DATA
+    # =============================================================
 
-    # =====================================================
-    # Missing / invalid data
-    # =====================================================
-
-    except KeyError as e:
-
-        db.session.rollback()
-
-        return jsonify({
-
-            "success": False,
-
-            "error":
-                f"Missing required field: {e.args[0]}"
-
-        }), 400
-
-
-    # =====================================================
-    # Invalid number / date
-    # =====================================================
-
-    except ValueError:
-
-        db.session.rollback()
-
-        return jsonify({
-
-            "success": False,
-
-            "error":
-                "Please enter valid numeric and date values."
-
-        }), 400
-
-
-    # =====================================================
-    # Any other database/server error
-    # =====================================================
-
-    except Exception as e:
+    except ValueError as e:
 
         db.session.rollback()
 
         print(
-            "ERROR CREATING FARMER:",
+            "FARMER REGISTRATION VALIDATION ERROR:",
             str(e)
         )
 
@@ -296,11 +471,30 @@ def create_farmer():
 
             "success": False,
 
-            "error":
-                "Something went wrong while creating the farmer profile."
+            "message": str(e)
+
+        }), 400
+
+    # =============================================================
+    # DATABASE / OTHER ERROR
+    # =============================================================
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        print(
+            "FARMER REGISTRATION ERROR:",
+            str(e)
+        )
+
+        return jsonify({
+
+            "success": False,
+
+            "message": "Failed to register farmer"
 
         }), 500
-
 
 # =========================================================
 # FARMER LOGIN
@@ -440,136 +634,176 @@ def farmer_login():
 # GET FARMER
 # =========================================================
 
-@farmer_bp.route(
-    "/farmers/<int:farmer_id>",
-    methods=["GET"]
-)
+@farmer_bp.route('/farmers/<int:farmer_id>', methods=['GET'])
 def get_farmer(farmer_id):
-
     try:
 
-        farmer = Farmer.query.get(
-            farmer_id
-        )
+        # =============================================
+        # GET FARMER
+        # =============================================
 
-
-        # -------------------------------------------------
-        # Farmer not found
-        # -------------------------------------------------
+        farmer = Farmer.query.get(farmer_id)
 
         if not farmer:
-
             return jsonify({
-
-                "success": False,
-
-                "error":
-                    "Farmer not found"
-
+                'success': False,
+                'message': 'Farmer not found'
             }), 404
 
 
-        # -------------------------------------------------
-        # Return farmer data
-        # -------------------------------------------------
+        # =============================================
+        # GET FARMER LOTS
+        # =============================================
+
+        lots = Lot.query.filter_by(
+            farmer_id=farmer_id
+        ).order_by(
+            Lot.created_at.desc()
+        ).all()
+
+
+        # =============================================
+        # FARMING SUMMARY
+        # =============================================
+
+        total_lots = len(lots)
+
+        active_lots = sum(
+            1
+            for lot in lots
+            if str(lot.status or '').lower() == 'available'
+        )
+
+        sold_lots = sum(
+            1
+            for lot in lots
+            if str(lot.status or '').lower()
+            in ['sold', 'completed']
+        )
+
+        total_quantity = sum(
+            float(lot.quantity or 0)
+            for lot in lots
+        )
+
+
+        # =============================================
+        # CROPS
+        # =============================================
+
+        crops = Crop.query.filter_by(
+            farmer_id=farmer_id
+        ).all()
+
+        crop_list = []
+
+        for crop in crops:
+
+            crop_name = (
+                getattr(crop, 'name', None)
+                or getattr(crop, 'crop', None)
+                or getattr(crop, 'crop_name', None)
+            )
+
+            if crop_name:
+                crop_list.append(crop_name)
+
+
+        # =============================================
+        # RECENT LOTS
+        # =============================================
+
+        recent_lots = []
+
+        for lot in lots[:5]:
+
+            recent_lots.append({
+                'id': lot.id,
+                'crop': lot.crop,
+                'variety': lot.variety,
+                'quantity': lot.quantity,
+                'unit': lot.unit,
+                'quality_grade': lot.quality_grade,
+                'expected_price': lot.expected_price,
+                'status': lot.status,
+                'created_at': (
+                    lot.created_at.isoformat()
+                    if lot.created_at
+                    else None
+                )
+            })
+
+
+        # =============================================
+        # FARMER RESPONSE
+        # =============================================
+
+        farmer_data = {
+            'id': farmer.id,
+            'name': farmer.name,
+            'mobile': farmer.mobile,
+            'language': farmer.language,
+            'state': farmer.state,
+            'district': farmer.district,
+            'village': farmer.village,
+            'status': getattr(
+                farmer,
+                'status',
+                'Active'
+            ),
+
+            # Farming summary
+            'total_lots': total_lots,
+            'active_lots': active_lots,
+            'sold_lots': sold_lots,
+            'total_quantity': total_quantity,
+
+            # Crops
+            'crops': crop_list,
+
+            # Recent lots
+            'recent_lots': recent_lots,
+
+            # Account dates
+            'created_at': (
+                farmer.created_at.isoformat()
+                if getattr(farmer, 'created_at', None)
+                else None
+            ),
+
+            'updated_at': (
+                farmer.updated_at.isoformat()
+                if getattr(farmer, 'updated_at', None)
+                else None
+            )
+        }
+
 
         return jsonify({
-
-            "success": True,
-
-            "farmer": {
-
-                "id": farmer.id,
-
-                "name": farmer.name,
-
-                "mobile": farmer.mobile,
-
-                "state": farmer.state,
-
-                "district": farmer.district,
-
-                "village": farmer.village,
-
-                "language": farmer.language,
-
-                "farmSize":
-                    farmer.farm_size,
-
-                "irrigation":
-                    farmer.irrigation,
-
-                "fpoMember":
-                    farmer.fpo_member,
-
-                "fpoName":
-                    farmer.fpo_name,
-
-                "paymentNeed":
-                    farmer.payment_need,
-
-                "storageAvailable":
-                    farmer.storage_available,
-
-                "storageDuration":
-                    farmer.storage_duration,
-
-                "minimumPrice":
-                    farmer.minimum_price,
-
-                # IMPORTANT:
-                # password_hash is NOT returned
-
-                "crops": [
-
-                    {
-                        "id":
-                            crop.id,
-
-                        "crop":
-                            crop.crop,
-
-                        "variety":
-                            crop.variety,
-
-                        "quantity":
-                            crop.quantity,
-
-                        "harvestDate":
-                            crop.harvest_date.isoformat(),
-
-                        "expectedSellingDate":
-                            crop.expected_selling_date.isoformat()
-                    }
-
-                    for crop in farmer.crops
-                ]
-            }
-
+            'success': True,
+            'farmer': farmer_data
         }), 200
 
 
     except Exception as e:
+        db.session.rollback()
 
-        print(
-            "ERROR GETTING FARMER:",
-            str(e)
-        )
+        print("======================================")
+        print("GET FARMER PROFILE ERROR:")
+        print("ERROR TYPE:", type(e).__name__)
+        print("ERROR:", str(e))
+        print("======================================")
 
         return jsonify({
-
-            "success": False,
-
-            "error":
-                "Unable to fetch farmer information."
-
+            'success': False,
+            'message': 'Failed to fetch farmer profile',
+            'details': str(e)
         }), 500
-
 # =========================================================
 # GET ALL LOTS OF A FARMER
 # =========================================================
 
-@routes.route("/api/farmers/<int:farmer_id>/lots", methods=["GET"])
+@farmer_bp.route("/farmers/<int:farmer_id>/lots", methods=["GET"])
 def get_farmer_lots(farmer_id):
 
     farmer = Farmer.query.get(farmer_id)
@@ -596,8 +830,8 @@ def get_farmer_lots(farmer_id):
 # GET SINGLE LOT
 # =========================================================
 
-@routes.route(
-    "/api/farmers/<int:farmer_id>/lots/<int:lot_id>",
+@farmer_bp.route(
+    "/farmers/<int:farmer_id>/lots/<int:lot_id>",
     methods=["GET"]
 )
 def get_lot(farmer_id, lot_id):
@@ -623,8 +857,8 @@ def get_lot(farmer_id, lot_id):
 # CREATE LOT
 # =========================================================
 
-@routes.route(
-    "/api/farmers/<int:farmer_id>/lots",
+@farmer_bp.route(
+    "/farmers/<int:farmer_id>/lots",
     methods=["POST"]
 )
 def create_lot(farmer_id):
@@ -662,17 +896,8 @@ def create_lot(farmer_id):
             "message": "Quantity is required"
         }), 400
 
-    if not unit:
-        return jsonify({
-            "success": False,
-            "message": "Unit is required"
-        }), 400
-
-    if not quality_grade:
-        return jsonify({
-            "success": False,
-            "message": "Quality grade is required"
-        }), 400
+    unit = unit or "quintal"
+    quality_grade = quality_grade or "Not Graded"
 
     try:
 
@@ -693,39 +918,29 @@ def create_lot(farmer_id):
 
         lot = Lot(
             farmer_id=farmer_id,
-
             crop=crop,
             variety=data.get("variety"),
-
             quantity=float(quantity),
             unit=unit,
-
             quality_grade=quality_grade,
-
             expected_price=(
                 float(data["expected_price"])
                 if data.get("expected_price") not in [None, ""]
                 else None
             ),
-
             minimum_price=(
                 float(data["minimum_price"])
                 if data.get("minimum_price") not in [None, ""]
                 else None
             ),
-
             available_from=available_from,
             expected_sale_date=expected_sale_date,
-
             pickup_location=data.get("pickup_location"),
-
             state=data.get("state"),
             district=data.get("district"),
             village=data.get("village"),
-
             description=data.get("description"),
             packaging_type=data.get("packaging_type"),
-
             status="Available"
         )
 
@@ -755,8 +970,8 @@ def create_lot(farmer_id):
 # UPDATE LOT
 # =========================================================
 
-@routes.route(
-    "/api/farmers/<int:farmer_id>/lots/<int:lot_id>",
+@farmer_bp.route(
+    "/farmers/<int:farmer_id>/lots/<int:lot_id>",
     methods=["PUT"]
 )
 def update_lot(farmer_id, lot_id):
@@ -877,8 +1092,8 @@ def update_lot(farmer_id, lot_id):
 # DELETE LOT
 # =========================================================
 
-@routes.route(
-    "/api/farmers/<int:farmer_id>/lots/<int:lot_id>",
+@farmer_bp.route(
+    "/farmers/<int:farmer_id>/lots/<int:lot_id>",
     methods=["DELETE"]
 )
 def delete_lot(farmer_id, lot_id):
@@ -1486,4 +1701,252 @@ def create_buyer_demand(buyer_id):
             "success": False,
             "message": "Failed to create demand",
             "error": str(e)
+        }), 500
+@routes.route("/api/buyers", methods=["GET"])
+def get_all_buyers():
+    try:
+        buyers = Buyer.query.order_by(
+            Buyer.created_at.desc()
+        ).all()
+
+        result = []
+
+        for buyer in buyers:
+
+            # Only show active demands
+            active_demands = Demand.query.filter_by(
+                buyer_id=buyer.id,
+                status="Active"
+            ).order_by(
+                Demand.created_at.desc()
+            ).all()
+
+            result.append({
+                "id": buyer.id,
+                "name": buyer.name,
+                "mobile": buyer.mobile,
+                "email": buyer.email,
+                "buyer_type": buyer.buyer_type,
+
+                "state": buyer.state,
+                "district": buyer.district,
+                "village": buyer.village,
+                "address": buyer.address,
+
+                "status": buyer.status,
+
+                # Buyer demands
+                "demands": [
+                    {
+                        "id": demand.id,
+                        "crop": demand.crop,
+                        "variety": demand.variety,
+                        "quantity": demand.quantity,
+                        "unit": demand.unit,
+                        "quality_grade": demand.quality_grade,
+                        "minimum_price": demand.minimum_price,
+                        "maximum_price": demand.maximum_price,
+                        "required_by": (
+                            demand.required_by.isoformat()
+                            if demand.required_by
+                            else None
+                        ),
+                        "state": demand.state,
+                        "district": demand.district,
+                        "pickup_location": demand.pickup_location,
+                        "packaging_requirement": demand.packaging_requirement,
+                        "additional_requirements": demand.additional_requirements,
+                        "status": demand.status
+                    }
+                    for demand in active_demands
+                ]
+            })
+
+        return jsonify({
+            "success": True,
+            "buyers": result
+        }), 200
+
+    except Exception as e:
+
+        print("ERROR FETCHING BUYERS:", str(e))
+
+        return jsonify({
+            "success": False,
+            "error": "Failed to fetch buyers",
+            "details": str(e)
+        }), 500
+
+# backend/routes.py or wherever your routes are
+
+@farmer_bp.route('/farmers/<int:farmer_id>', methods=['PUT'])
+def update_farmer(farmer_id):
+    try:
+
+        data = request.get_json()
+
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'No data provided'
+            }), 400
+
+        farmer = Farmer.query.get(farmer_id)
+
+        if not farmer:
+            return jsonify({
+                'success': False,
+                'message': 'Farmer not found'
+            }), 404
+
+        # =============================================
+        # UPDATE ALLOWED FIELDS
+        # =============================================
+
+        if 'name' in data:
+            farmer.name = data['name']
+
+        if 'language' in data:
+            farmer.language = data['language']
+
+        if 'state' in data:
+            farmer.state = data['state']
+
+        if 'district' in data:
+            farmer.district = data['district']
+
+        if 'village' in data:
+            farmer.village = data['village']
+
+        if 'address' in data:
+            farmer.address = data['address']
+
+        # ------------------------------------------------
+        # Mobile intentionally not updated here.
+        # It is unique and should not be changed casually.
+        # ------------------------------------------------
+
+        db.session.commit()
+
+        # =============================================
+        # RETURN UPDATED FARMER
+        # =============================================
+
+        return jsonify({
+            'success': True,
+            'message': 'Profile updated successfully',
+            'farmer': {
+                'id': farmer.id,
+                'name': farmer.name,
+                'mobile': farmer.mobile,
+                'language': farmer.language,
+                'state': farmer.state,
+                'district': farmer.district,
+                'village': farmer.village,
+                'address': farmer.address
+            }
+        }), 200
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        print('UPDATE FARMER ERROR:', str(e))
+
+        return jsonify({
+            'success': False,
+            'message': 'Failed to update farmer profile'
+        }), 500
+# backend/routes.py
+
+@routes.route('/api/buyers/<int:buyer_id>', methods=['PUT'])
+def update_buyer(buyer_id):
+
+    try:
+
+        # =============================================
+        # GET REQUEST DATA
+        # =============================================
+
+        data = request.get_json()
+
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'No data provided'
+            }), 400
+
+
+        # =============================================
+        # FIND BUYER
+        # =============================================
+
+        buyer = Buyer.query.get(buyer_id)
+
+        if not buyer:
+            return jsonify({
+                'success': False,
+                'message': 'Buyer not found'
+            }), 404
+
+
+        # =============================================
+        # UPDATE EDITABLE FIELDS
+        # =============================================
+
+        if 'name' in data:
+            buyer.name = data['name']
+
+        if 'email' in data:
+            buyer.email = data['email']
+
+        if 'buyer_type' in data:
+            buyer.buyer_type = data['buyer_type']
+
+        if 'state' in data:
+            buyer.state = data['state']
+
+        if 'district' in data:
+            buyer.district = data['district']
+
+        if 'village' in data:
+            buyer.village = data['village']
+
+        if 'address' in data:
+            buyer.address = data['address']
+
+
+        # =============================================
+        # SAVE TO DATABASE
+        # =============================================
+
+        db.session.commit()
+
+
+        # =============================================
+        # RESPONSE
+        # =============================================
+
+        return jsonify({
+            'success': True,
+            'message': 'Buyer profile updated successfully',
+
+            'buyer': buyer.to_dict()
+        }), 200
+
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        print('======================================')
+        print('UPDATE BUYER ERROR:')
+        print(type(e).__name__)
+        print(str(e))
+        print('======================================')
+
+        return jsonify({
+            'success': False,
+            'message': 'Failed to update buyer profile',
+            'details': str(e)
         }), 500
